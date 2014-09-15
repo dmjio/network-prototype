@@ -5,6 +5,7 @@ import           Control.Concurrent
 import           Control.Monad
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as B
+import qualified Data.ByteString.Char8 as B8
 import           Network
 import           System.IO.Streams  (InputStream, OutputStream)
 import qualified System.IO.Streams  as Streams
@@ -21,14 +22,12 @@ main :: IO ()
 main = do
   handle <- connectTo "localhost" (PortNumber 3333)
   hSetBuffering handle NoBuffering 
-  is <- Streams.handleToInputStream handle
   forever $ do
-     F.mapM_ handleBS =<< Streams.read is
-  where
-    handleBS bs = 
-      case decode bs :: Either String Command of
-        Left err  -> error $ "Couldn't read stream: " ++ err
-        Right cmd -> putStrLn $ "Got command: " ++ show cmd
+    is <- Streams.handleToInputStream handle
+    Streams.connectTo Streams.stdout =<< 
+       Streams.map (B8.pack . show) =<< 
+         (decodeFromStream is :: IO (InputStream Command))
+
                     
 
 
